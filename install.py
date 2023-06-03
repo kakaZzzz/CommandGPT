@@ -20,26 +20,9 @@ def getGithubRepo(url):
     if matchObj:
         return "https://raw.githubusercontent.com/"+matchObj[1]+"/main/README.md"
 
-
-# 命令行参数
-if len(sys.argv) == 1:
-    print("请输入Github项目地址")
-    exit()
-
-url = sys.argv[1]
-
-readme = getGithubRepo(url)
-print( "readme地址:", readme )
-
-print( "抓取readme..." )
-readme = requests.get(readme)
-# print("HTML:\n", readme.text)
-
-# exit(0)
-
 # api keys
 
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = "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"
 
 llm = ChatOpenAI(temperature=0.9, streaming=True)
 
@@ -53,7 +36,15 @@ chinese_autogpt_prompt = HumanMessagePromptTemplate.from_template("""
 
 分析以上的文本，我使用mac电脑，告诉我如何通过命令行安装该项目
 
-Human: 一步一步完成目标:
+Human: 一步一步完成目标，请用markdown文本返回结果，，代码要以block方式展示:
+""")
+                                                                  
+ask_prompt = HumanMessagePromptTemplate.from_template("""
+目标:
+
+{goal}
+
+Human: 一步一步完成目标，请用markdown文本返回结果，，代码要以block方式展示:
 """)
                                                                   
                                                                   
@@ -68,7 +59,7 @@ debugger_prompt = HumanMessagePromptTemplate.from_template("""
 
 分析以上的错误信息，我使用mac电脑，告诉我如何通过命令行解决该错误
 
-Human: 一步一步完成目标，代码用markdown语法展示:
+Human: 一步一步完成目标，代码用markdown语法展示，代码要以block方式展示:
 """)
 
 # chain
@@ -76,32 +67,95 @@ chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, chinese_a
 chain = LLMChain(llm=llm, prompt=chat_prompt)
 
 debugger_chain = LLMChain(llm=llm, prompt=ChatPromptTemplate.from_messages([system_message_prompt, debugger_prompt]))
+ask_chain = LLMChain(llm=llm, prompt=ChatPromptTemplate.from_messages([system_message_prompt, ask_prompt]))
 
-#run
+# 命令行参数
+if len(sys.argv) == 1:
+    print("请输入Github项目地址")
+    exit()
 
-print( "GPT分析安装步骤..." )
-s = chain.run({
-        'readme': readme.text
-    })
+url = sys.argv[1]
 
-print( s)
+if url.startswith("http"):
+    readme = getGithubRepo(url)
+    print( "readme地址:", readme )
 
-# s="""
+    print( "抓取readme..." )
+    readme = requests.get(readme)
 
-# 2. 添加 k8sgpt 的 tap：
+    #run
 
-# $$ brew tap k8sgpt-ai/k8sgpt
+    print( "GPT分析安装步骤..." )
+    s = chain.run({
+            'readme': readme.text
+        })
 
-# 3. 安装 k8sgpt：
+    # print("\033[93m"+s+"\033[0m")
+else:
+    goal = url
 
-# $$ brew install k8sgpt
-# """
+    print( "GPT分析目标..." )
+    s = ask_chain.run({
+            'goal': goal
+        })
 
-# matchObj = re.findall( r'\$\$(.*)$', s, re.M|re.I)
-matchObj = re.findall( r'```([^`]*)```', s, re.M|re.I|re.S)
+    # print("\033[93m"+s+"\033[0m")
+
+
+def is_start_with_english(s):
+    if s and s[0].isalpha():
+        return True
+    return False
+
+matchObj = re.findall( r'```[\w]*\n([^`]*)```', s, re.M|re.I|re.S)
+
+cmds = []
+
 if matchObj:
    for match in matchObj:
+        s = match.strip()
+        lines = s.splitlines()
+        for line in lines:
+            line = line.strip()
+            if line.find("&&") ==-1:
+                if is_start_with_english(line):
+                    cmds.append(line)
+            else:
+                words = line.split("&&")
+                for word in words:
+                    if is_start_with_english(word.strip()):
+                        cmds.append(word.strip())
+else:
+    print("no match")
+
+def githubFix(s):
+    """github 替换为 kgithub"""
+    new = s.replace('github', 'kgithub')
+    return new
+
+def userChooseCmd():
+    """用户选择命令"""
+    print("-------------")
+    print("建议的命令如下：")
+
+    for index, match in enumerate(cmds):
+        print(index, "\033[93m"+match+"\033[0m")
+
+    res= input("请输入序号执行命令：")
+
+    return int(res)
+
+def runCmd():
+    """运行命令行命令"""
+    num = userChooseCmd()
+    match = githubFix(cmds[num])
+
+    if match.startswith("cd"):
+        os.chdir(match.split(" ")[1])
+        print(os.getcwd())
+    else:
         # print(match)
+        print("###")
         print("执行: "+match)
         print("###")
         proc = Popen(
@@ -111,14 +165,22 @@ if matchObj:
             stderr=PIPE,  # 标准错误，保存到管道
             shell=True)
         # print(proc.communicate()) # 标准输出的字符串+标准错误的字符串
+        
+
+        while proc.poll() is None:
+            line = proc.stdout.readline().decode('utf-8')
+            print( "\033[93m" + line +"\033[0m",end="")
+        # print("Info:")
+        # print("\033[93m"+outinfo.decode('utf-8')+"\033[0m")
+
         outinfo, errinfo = proc.communicate()
-        print("Info:")
-        print("\033[93m"+outinfo.decode('utf-8')+"\033[0m")
-        print("Error:")
-        print("\033[91m"+errinfo.decode('utf-8')+"\033[0m")
 
         proc.wait()
-        if  proc.returncode == 1:
+        if  proc.returncode == 1 or proc.returncode == 128:
+            # 128是git命令错误码
+            print("Error:")
+            print("\033[91m"+errinfo.decode('utf-8')+"\033[0m")
+
             print("执行失败，调用GPT尝试解决错误问题")
             print("###")
             s = debugger_chain.run({
@@ -130,8 +192,10 @@ if matchObj:
             print("\033[93m"+s+"\033[0m")
             print("###")
             print("任务退出，请先解决卡点问题")
-            break
+            exit(0)
         else:
-            print(proc.returncode)
-else:
-   print("No match!!")
+            print("return code: ",proc.returncode)
+            print("###")
+
+while  1:
+    runCmd()
