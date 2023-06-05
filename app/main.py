@@ -12,6 +12,9 @@ os.environ["OPENAI_API_KEY"] = envs["OPENAI_API_KEY"]
 
 from agents.goal import GoalAgent
 
-print(GoalAgent().run({
-    "goal": "请帮我安装python的dotenv库",
-}))
+
+
+def run():
+    print(GoalAgent().run({
+        "goal": "请帮我安装python的dotenv库",
+    }))    
