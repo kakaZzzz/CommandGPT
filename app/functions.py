@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import re
 
 def load_env():
     # Load environment variables from .env file
@@ -10,3 +11,8 @@ def load_env():
 
     # Return environment variables as dictionary
     return dict(env_vars)
+
+def getGithubRepo(url):
+    matchObj = re.search( r'com/(.*)$', url, re.M|re.I)
+    if matchObj:
+        return "https://raw.githubusercontent.com/"+matchObj[1]+"/main/README.md"

@@ -10,20 +10,15 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
 )
 
-import prompts.goal_message as prompts
+import prompts.task_message as prompts
 
-class  GoalAgent:
-    def __init__(self, type="zero_shot") -> None:
+class  TaskAgent:
+    def __init__(self) -> None:
         llm = ChatOpenAI(
             temperature = 0.9
         )
         system_message_prompt = SystemMessagePromptTemplate.from_template(prompts.system())
-
-        if type == "zero_shot":
-            human_message_prompt = HumanMessagePromptTemplate.from_template(prompts.human_zero_shot())
-        elif type == "few_shot":
-            human_message_prompt = HumanMessagePromptTemplate.from_template(prompts.human_few_shot())
-
+        human_message_prompt = HumanMessagePromptTemplate.from_template(prompts.human())
         chat_prompt = ChatPromptTemplate.from_messages([
             system_message_prompt,
             human_message_prompt
