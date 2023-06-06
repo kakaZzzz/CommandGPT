@@ -1,5 +1,5 @@
 def system():
-    return "你是一个有用的助手，能帮我把文本转换成指定的格式"
+    return "你是一个有用的助手，能帮我把理解分析文本"
 
 def human():
     return """

@@ -16,3 +16,10 @@ def getGithubRepo(url):
     matchObj = re.search( r'com/(.*)$', url, re.M|re.I)
     if matchObj:
         return "https://raw.githubusercontent.com/"+matchObj[1]+"/main/README.md"
+    
+def jsonStr(s):
+    matchObj = re.search( r'(\{.*\})', s, re.M|re.I|re.S)
+    if matchObj:
+        return matchObj[0]
+    else:
+        return ""

@@ -1,4 +1,5 @@
 from langchain.utilities import PythonREPL, BashProcess
+from .shell import Shell
 
 class Tools:
     def __init__(self):
@@ -7,7 +8,7 @@ class Tools:
 
             "shell": {
                 "description": "Executes commands in a terminal. Input should be valid commands, and the output will be any output from running that command.",
-                "func": BashProcess().run
+                "func": Shell().run
             },
 
             "python_repl": {
@@ -28,4 +29,4 @@ class Tools:
         print(text)
         return text
 
-Tools().inline_text(["shell", "python_repl"])
+# Tools().inline_text(["shell", "python_repl"])
