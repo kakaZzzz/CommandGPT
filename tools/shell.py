@@ -1,4 +1,5 @@
 from subprocess import PIPE,Popen
+import app.functions as f
 
 class Shell():
     def __init__(self):
@@ -10,11 +11,11 @@ class Shell():
 
         while p.poll() is None:
             line = p.stdout.readline().decode('utf-8')
-            print( "\033[93m" + line +"\033[0m",end="")
+            print( line )
 
         stdout, stderr = p.communicate()
         print("输出信息：", stdout.decode("utf-8"))
-        print("错误信息：", stderr.decode("utf-8"))
+        f.redPrint("错误信息：", stderr.decode("utf-8"))
         print("返回码：", p.returncode)
         return """
 returncode是：

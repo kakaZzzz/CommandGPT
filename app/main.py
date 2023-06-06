@@ -41,53 +41,53 @@ def run(input_str):
     if input_str.startswith("http"):
         # few shot
         readme = f.getGithubRepo(input_str)
-        print( "readme地址:", readme )
+        f.cyanPrint( "[+]readme地址:", readme )
 
-        print( "抓取readme..." )
+        f.cyanPrint( "[+]抓取readme..." )
         readme = requests.get(readme)
 
-        print( "GPT分析安装步骤..." )
+        f.cyanPrint( "[+]GPT分析安装步骤..." )
         goal_text = GoalAgent().run({
                 'reference': readme.text,
                 'goal': "安装该项目",
                 'os_info': os_info
             })
 
-        print("\033[93m"+goal_text+"\033[0m")
+        print(goal_text)
 
     else:
         # zero shot
-        print( "GPT分析目标..." )
+        f.cyanPrint( "[+]GPT分析目标..." )
         goal_text = GoalAgent().run({
                 'goal': input_str,
                 'os_info': os_info
             }) 
-        print("\033[93m"+goal_text+"\033[0m")
+        print(goal_text)
 
     # Step 2: 基于步骤文本，整理成json格式
-    print( "转换成json..." )
+    f.cyanPrint( "[+]转换成json..." )
     cmd_json = TaskAgent().run({
         "content": goal_text,
         "os_info": os_info
     })
-    print("\033[93m"+cmd_json+"\033[0m")
+    print(cmd_json)
 
     # Step 3: json转换成数组，依次执行任务
-    cmd = json.loads(cmd_json)
+    cmd = f.json2value(cmd_json)
     print(cmd)
 
-    print("开始执行任务：")
+    f.cyanPrint("[+]开始执行任务：")
 
     for index, item in enumerate(cmd):
-        print("任务", index+1, item)
+        f.cyanPrint("[+]任务", str(index+1), item["tool"])
         
         if item["tool"] == "shell":
             res = tools.run("shell", item["command"])
             print(res)
         elif item["tool"] == "human":
-            print("reasoning: ", item["reasoning"])
-            print("command: ", item["command"])
-            input("请按照提示进行人工操作，执行完毕后按回车键继续")
+            f.yellowPrint("reasoning: ", item["reasoning"])
+            f.yellowPrint("command: ", item["command"])
+            f.bluePrint(">>> 请按照提示进行人工操作，执行完毕后按回车键继续")
             continue
         elif item["tool"] == "python_repl":
             res = tools.run("python_repl", item["command"])
@@ -97,17 +97,17 @@ def run(input_str):
             "info": res
         })
 
-        judge_result = json.loads(f.jsonStr(judge_result))
+        judge_result = f.json2value(judge_result)
         
         if judge_result["result"] == "success":
-            print("\033[92m"+judge_result["reasoning"]+"\033[0m")
+            f.greenPrint("[+]任务执行成功: ", judge_result["reasoning"])
         elif judge_result["result"] == "failure":
-            print("\033[91m"+judge_result["reasoning"]+"\033[0m")
+            f.redPrint("[-]任务执行失败: ", judge_result["reasoning"])
 
             retry = 0
 
             while retry < SOLUTION_RETRY:
-                print("尝试解决问题，第", retry+1, "次")
+                f.cyanPrint("[+]尝试解决问题，第", str(retry+1), "次")
 
                 solution_res = solutionTasks(item["tool"], {
                     "command": item["command"],
@@ -120,53 +120,53 @@ def run(input_str):
 
 
 def solutionTasks(tool_name, error_obj):
-    print("开始解决问题：")
-    print("工具：", tool_name)
-    print("错误信息：", error_obj)
+    f.cyanPrint("[+]开始解决问题：")
+    f.cyanPrint("[+]工具：", tool_name)
+    f.cyanPrint("[+]错误信息：", error_obj)
 
     solution_text = solution_agent.run(error_obj)
 
-    print("\033[93m"+solution_text+"\033[0m")
+    print(solution_text)
 
     # Step 2: 基于步骤文本，整理成json格式
-    print( "转换成json..." )
+    f.cyanPrint( "[+]转换成json..." )
     cmd_json = TaskAgent().run({
         "content": solution_text,
         "os_info": os_info
     })
-    print("\033[93m"+cmd_json+"\033[0m")
+    print(cmd_json)
 
-    cmd = json.loads(cmd_json)
+    cmd = f.json2value(cmd_json)
     print(cmd)
 
     for index, item in enumerate(cmd):
-        print("解决问题任务", index+1, item)
+        f.cyanPrint("[+]解决问题任务", str(index+1), item["tool"])
         
         if item["tool"] == "shell":
             res = tools.run("shell", item["command"])
             print(res)
         elif item["tool"] == "human":
-            print("reasoning: ", item["reasoning"])
-            print("command: ", item["command"])
-            input("请按照提示进行人工操作，执行完毕后按回车键继续")
+            f.yellowPrint("reasoning: ", item["reasoning"])
+            f.yellowPrint("command: ", item["command"])
+            f.bluePrint(">>> 请按照提示进行人工操作，执行完毕后按回车键继续")
             continue
         elif item["tool"] == "python_repl":
             res = tools.run("python_repl", item["command"])
 
         judge_result = judge_agent.run({
             "command": item["command"],
-            "info": res["info"]
+            "info": res
         })
 
-        judge_result = json.loads(f.jsonStr(judge_result))
+        judge_result = f.json2value(f.jsonStr(judge_result))
         
         if judge_result["result"] == "success":
-            print("\033[92m"+judge_result["reasoning"]+"\033[0m")
+            f.greenPrint("[+]任务执行成功: ", judge_result["reasoning"])
         elif judge_result["result"] == "failure":
-            print("\033[91m解法失败\033[0m")
+            f.redPrint("[-]任务执行失败: ", judge_result["reasoning"])
             return False
 
-    print("\033[92m解法任务执行完成\033[0m")
+    f.greenPrint("[+]解决问题任务执行完成")
     return True
 
 

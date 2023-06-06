@@ -33,7 +33,7 @@ Response Format:
     }},
 ]
 Ensure the response can be parsed by Python json.loads
-
+json中的value需要用escape编码
 
 Human: 请告诉转换的结果，并严格按照上述格式返回结果:
 """

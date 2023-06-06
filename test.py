@@ -3,7 +3,6 @@ import app.functions as f
 import os
 import requests
 import platform
-import chromadb
 
 from langchain.vectorstores import Chroma
 
