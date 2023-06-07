@@ -19,33 +19,45 @@ s = """
 }
 """
 
-matchObj = re.search( r'(\{.*\})', s, re.M|re.I|re.S)
+# matchObj = re.search( r'(\{.*\})', s, re.M|re.I|re.S)
 
-# print(matchObj[0])
+# # print(matchObj[0])
 
-from langchain.embeddings import OpenAIEmbeddings
+# from langchain.embeddings import OpenAIEmbeddings
 
-text = """
-{{
-    "goal": "帮我安装pytoch",
-}}
-"""
-name = "skill3"
+# text = """
+# {{
+#     "goal": "帮我安装pytoch",
+# }}
+# """
+# name = "skill3"
 
-embeddings = OpenAIEmbeddings()
-# query_result = embeddings.embed_query(text)
-db = Chroma(
-    collection_name="test",
-    embedding_function=embeddings,
-    persist_directory="library/db"
-)
-# res = db.add_texts(
-#     texts=[text],
-#     ids=[name],
-#     metadatas=[{"name": name}]
+# embeddings = OpenAIEmbeddings()
+# # query_result = embeddings.embed_query(text)
+# db = Chroma(
+#     collection_name="test",
+#     embedding_function=embeddings,
+#     persist_directory="library/db"
 # )
+# # res = db.add_texts(
+# #     texts=[text],
+# #     ids=[name],
+# #     metadatas=[{"name": name}]
+# # )
 
-t1 = "帮我安装pytorch"
+# t1 = "帮我安装pytorch"
 
-res1 = db.similarity_search_with_score(t1, k=1)
+# res1 = db.similarity_search_with_score(t1, k=1)
+# print(res1)
+
+from library import VectorDB
+
+db = VectorDB()
+
+res = db.search("帮我安装pytorch")
+
+print(res)
+
+res1 = db.delete()
+
 print(res1)

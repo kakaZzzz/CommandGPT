@@ -20,6 +20,7 @@ from agents.task import TaskAgent
 from agents.judge import JudgeAgent
 from agents.solution import SolutionAgent
 from agents.next import NextAgent
+from agents.keyword import KeywordAgent
 
 from tools import Tools
 
@@ -28,6 +29,8 @@ task_agent = TaskAgent()
 judge_agent = JudgeAgent()
 solution_agent = SolutionAgent()
 next_agent = NextAgent()
+keyword_agent = KeywordAgent()
+
 tools = Tools()
 
 SOLUTION_RETRY = 3
@@ -38,6 +41,7 @@ def run(input_str):
 
     goal_text = ""
     
+
     # Step 1: 基于目标和提示，分析完成目标的步骤（文本形式）
     if input_str.startswith("http"):
         # few shot
@@ -74,44 +78,45 @@ def run(input_str):
     # print(cmd_json)
 
     f.cyanPrint( "[+]下一步动作..." )
+    cmd_json = TaskAgent().run({
+        "content": goal_text,
+    })
+    print(cmd_json)
 
-    step_index = 0
-    done_text = ""
+    # Step 3: json转换成数组，依次执行任务
+    cmd = f.json2value(cmd_json)
 
-    while True:
+    for index, item in enumerate(cmd["result"]):
+        f.yellowPrint(str(index), "tool: ", item["tool"], " -> command: ", item["command"])
+        f.purplePrint ("  reasoning: ", item["reasoning"])
+    
+    selection = input("请选择执行的任务序号，多个任务用逗号分隔，如1,2,3: ")
 
-        cmd_json = NextAgent().run({
-            "steps": goal_text,
-            "done": done_text,
-            "goal": input_str,
-        })
-        print(cmd_json)
+    selection_arr = []
 
-        step_index += 1
+    for item in selection.split(","):
+        selection_arr.append(cmd["result"][int(item)])
 
-        # Step 3: json转换成数组，依次执行任务
-        cmd = f.json2value(cmd_json)
-        print(cmd)
+    print(selection_arr)
 
-        if cmd["tool"] == "finish":
-            f.greenPrint("[+]任务执行完毕")
-            break
+    f.cyanPrint("[+]开始执行任务：")
 
-        f.cyanPrint("[+]任务", str(step_index), cmd["tool"])
+    for index, item in enumerate(selection_arr):
+        f.cyanPrint("[+]任务", str(index+1), item["tool"])
         
-        if cmd["tool"] == "shell":
-            res = tools.run("shell", cmd["command"])
+        if item["tool"] == "shell":
+            res = tools.run("shell", item["command"])
             print(res)
-        elif cmd["tool"] == "human":
-            f.yellowPrint("reasoning: ", cmd["reasoning"])
-            f.yellowPrint("command: ", cmd["command"])
+        elif item["tool"] == "human":
+            f.yellowPrint("reasoning: ", item["reasoning"])
+            f.yellowPrint("command: ", item["command"])
             f.bluePrint(">>> 请按照提示进行人工操作，执行完毕后按回车键继续")
             continue
-        elif cmd["tool"] == "python_repl":
-            res = tools.run("python_repl", cmd["command"])
+        elif item["tool"] == "python_repl":
+            res = tools.run("python_repl", item["command"])
 
         judge_result = judge_agent.run({
-            "command": cmd["command"],
+            "command": item["command"],
             "info": res
         })
 
@@ -119,7 +124,6 @@ def run(input_str):
         
         if judge_result["result"] == "success":
             f.greenPrint("[+]任务执行成功: ", judge_result["reasoning"])
-            done_text += cmd["command"] + "执行成功. 原因是:" +judge_result["reasoning"]+ "\n"
         elif judge_result["result"] == "failure":
             f.redPrint("[-]任务执行失败: ", judge_result["reasoning"])
 
@@ -128,14 +132,30 @@ def run(input_str):
             while retry < SOLUTION_RETRY:
                 f.cyanPrint("[+]尝试解决问题，第", str(retry+1), "次")
 
-                solution_res = solutionTasks(cmd["tool"], {
-                    "command": cmd["command"],
+                solution_res = solutionTasks(item["tool"], {
+                    "command": item["command"],
                     "info": res,
                     "os_info": os_info
                 })
 
                 if solution_res:
                     break
+        
+        f.greenPrint("[+]全部任务执行完成，将该经验存入向量数据库")
+
+        success_dict = {
+            "goal": input_str,
+            "tasks": selection_arr
+        }
+
+        json_text = json.dumps(success_dict, ensure_ascii=False)
+        print(json_text)
+
+        keywords = keyword_agent.run({
+            "content": json_text
+        })
+
+        print(keywords)
 
 
 def solutionTasks(tool_name, error_obj):
@@ -156,6 +176,22 @@ def solutionTasks(tool_name, error_obj):
 
     cmd = f.json2value(cmd_json)
     print(cmd)
+
+    for index, item in enumerate(cmd["result"]):
+        f.yellowPrint(str(index), "tool: ", item["tool"], " -> command: ", item["command"])
+        f.purplePrint ("  reasoning: ", item["reasoning"])
+    
+    selection = input("请选择执行的任务序号，多个任务用逗号分隔，如1,2,3 or 方案不正确输入n: ")
+
+    if selection == "n":
+        return False
+
+    selection_arr = []
+
+    for item in selection.split(","):
+        selection_arr.append(cmd["result"][int(item)])
+
+    print(selection_arr)
 
     for index, item in enumerate(cmd["result"]):
         f.cyanPrint("[+]解决问题任务", str(index+1), item["tool"])

@@ -62,4 +62,7 @@ def json2value(s):
         print(res)
         return json2value(res)
 
+def json2File(s, file):
+    with open(file, 'w') as f:
+        json.dump(s, f, indent=4, ensure_ascii=False)
     
