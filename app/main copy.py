@@ -38,6 +38,7 @@ def run(input_str):
 
     goal_text = ""
     
+
     # Step 1: 基于目标和提示，分析完成目标的步骤（文本形式）
     if input_str.startswith("http"):
         # few shot
@@ -74,44 +75,34 @@ def run(input_str):
     # print(cmd_json)
 
     f.cyanPrint( "[+]下一步动作..." )
+    cmd_json = NextAgent().run({
+        "steps": goal_text,
+        "done": ""
+    })
+    print(cmd_json)
 
-    step_index = 0
-    done_text = ""
+    # Step 3: json转换成数组，依次执行任务
+    cmd = f.json2value(cmd_json)
+    print(cmd)
 
-    while True:
+    f.cyanPrint("[+]开始执行任务：")
 
-        cmd_json = NextAgent().run({
-            "steps": goal_text,
-            "done": done_text,
-            "goal": input_str,
-        })
-        print(cmd_json)
-
-        step_index += 1
-
-        # Step 3: json转换成数组，依次执行任务
-        cmd = f.json2value(cmd_json)
-        print(cmd)
-
-        if cmd["tool"] == "finish":
-            f.greenPrint("[+]任务执行完毕")
-            break
-
-        f.cyanPrint("[+]任务", str(step_index), cmd["tool"])
+    for index, item in enumerate(cmd["result"]):
+        f.cyanPrint("[+]任务", str(index+1), item["tool"])
         
-        if cmd["tool"] == "shell":
-            res = tools.run("shell", cmd["command"])
+        if item["tool"] == "shell":
+            res = tools.run("shell", item["command"])
             print(res)
-        elif cmd["tool"] == "human":
-            f.yellowPrint("reasoning: ", cmd["reasoning"])
-            f.yellowPrint("command: ", cmd["command"])
+        elif item["tool"] == "human":
+            f.yellowPrint("reasoning: ", item["reasoning"])
+            f.yellowPrint("command: ", item["command"])
             f.bluePrint(">>> 请按照提示进行人工操作，执行完毕后按回车键继续")
             continue
-        elif cmd["tool"] == "python_repl":
-            res = tools.run("python_repl", cmd["command"])
+        elif item["tool"] == "python_repl":
+            res = tools.run("python_repl", item["command"])
 
         judge_result = judge_agent.run({
-            "command": cmd["command"],
+            "command": item["command"],
             "info": res
         })
 
@@ -119,7 +110,6 @@ def run(input_str):
         
         if judge_result["result"] == "success":
             f.greenPrint("[+]任务执行成功: ", judge_result["reasoning"])
-            done_text += cmd["command"] + "执行成功. 原因是:" +judge_result["reasoning"]+ "\n"
         elif judge_result["result"] == "failure":
             f.redPrint("[-]任务执行失败: ", judge_result["reasoning"])
 
@@ -128,8 +118,8 @@ def run(input_str):
             while retry < SOLUTION_RETRY:
                 f.cyanPrint("[+]尝试解决问题，第", str(retry+1), "次")
 
-                solution_res = solutionTasks(cmd["tool"], {
-                    "command": cmd["command"],
+                solution_res = solutionTasks(item["tool"], {
+                    "command": item["command"],
                     "info": res,
                     "os_info": os_info
                 })

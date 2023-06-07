@@ -47,5 +47,5 @@ db = Chroma(
 
 t1 = "帮我安装pytorch"
 
-res1 = db.similarity_search_with_score(t1)
+res1 = db.similarity_search_with_score(t1, k=1)
 print(res1)

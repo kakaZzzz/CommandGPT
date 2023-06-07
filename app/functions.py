@@ -39,7 +39,7 @@ def cyanPrint(*s):
     return print("\033[96m"+ " ".join(s) +"\033[0m")
 
 def jsonStr(s):
-    matchObj = re.search( r'(\[.*\])', s, re.M|re.I|re.S)
+    matchObj = re.search( r'(\{.*\})', s, re.M|re.I|re.S)
     if matchObj:
         return matchObj[0]
     else:
