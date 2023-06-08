@@ -1,0 +1,11 @@
+{
+    "goal": "我已经安装了python和pip,请帮我安装pillow库",
+    "os_info": "Darwin 22.4.0 arm64",
+    "tasks": [
+        {
+            "tool": "shell",
+            "reasoning": "需要在终端中执行pillow库安装命令，使用shell工具执行。",
+            "command": "pip install pillow"
+        }
+    ]
+}

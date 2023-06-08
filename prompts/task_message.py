@@ -5,12 +5,9 @@ def human():
     return """
 {content}
 
-请理解以上的内容，你只能使用以下4个工具来完成任务：
+请充分分析和理解以上的内容
 
-1. shell. Description: Executes commands in a terminal. Input should be valid commands, and the output will be any output from running that command.需要确保commadn是合法的shell命令，可以在terminal中执行。
-2. python_repl. Description: A Python shell. Use this to execute python commands. Input should be a valid python command. If you want to see the output of a value, you should print it out with `print(...)`.
-3. human. 当必须人工操作，或者人工操作更方便和精确时，使用该工具.
-4. finish. Description: This is a special tool that you can use to indicate that you have finished the task. You should not use this tool unless you have completed the task.
+{tools}
 
 请给出执行每个步骤的工具、原因和命令。
 
@@ -37,6 +34,7 @@ Response Format:
     ]
 }}
 
+command中如果包含&&、;、"或"这三个符号，必须要拆成多条command
 Ensure the response can be parsed by Python json.loads
 json中的value需要用escape编码
 

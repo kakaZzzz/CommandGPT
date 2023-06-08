@@ -1,0 +1,11 @@
+{
+    "goal": "请帮我用pip安装chromadb库",
+    "os_info": "Darwin 22.4.0 arm64",
+    "tasks": [
+        {
+            "tool": "shell",
+            "reasoning": "使用pip命令来安装python库，需要在terminal中运行，因此使用shell工具",
+            "command": "pip install chromadb"
+        }
+    ]
+}

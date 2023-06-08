@@ -11,6 +11,7 @@ from langchain.prompts import (
 )
 
 import prompts.task_message as prompts
+from tools import Tools
 
 class  TaskAgent:
     def __init__(self) -> None:
@@ -24,7 +25,11 @@ class  TaskAgent:
             human_message_prompt
         ])
 
-        self.chain = LLMChain(llm=llm, prompt=chat_prompt)
+        self.tools = Tools()
+        self.uesd_tools = ["shell", "change_dir"]
+        self.chain = LLMChain(llm=llm, prompt=chat_prompt, verbose=True)
 
     def run(self, input):
+        input["tools"] = self.tools.inline_text(self.uesd_tools)
+
         return self.chain.run(input)

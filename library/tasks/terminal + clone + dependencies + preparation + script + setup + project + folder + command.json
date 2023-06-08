@@ -1,0 +1,21 @@
+{
+    "goal": "以上文本描述的是如何在终端上克隆并安装AgentGPT项目所需的依赖，目标是为后续使用该项目做好准备工作。",
+    "os_info": "Darwin 22.4.0 arm64",
+    "tasks": [
+        {
+            "tool": "shell",
+            "reasoning": "需要使用克隆命令克隆项目",
+            "command": "git clone https://github.com/reworkd/AgentGPT.git"
+        },
+        {
+            "tool": "change_dir",
+            "reasoning": "需要进入到AgentGPT文件夹中",
+            "command": "cd AgentGPT"
+        },
+        {
+            "tool": "shell",
+            "reasoning": "需要运行项目自动设置脚本，安装项目所需依赖",
+            "command": "./setup.sh"
+        }
+    ]
+}

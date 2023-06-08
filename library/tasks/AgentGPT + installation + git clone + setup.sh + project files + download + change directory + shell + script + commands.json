@@ -1,0 +1,21 @@
+{
+    "goal": "这段文本描述的是如何安装一个名为 AgentGPT 的项目。",
+    "os_info": "Darwin 22.4.0 arm64",
+    "tasks": [
+        {
+            "tool": "shell",
+            "reasoning": "使用git clone命令来从该项目的代码库中获取项目文件。",
+            "command": "git clone https://github.com/reworkd/AgentGPT.git"
+        },
+        {
+            "tool": "change_dir",
+            "reasoning": "使用cd命令来进入下载的项目文件夹。",
+            "command": "cd AgentGPT"
+        },
+        {
+            "tool": "shell",
+            "reasoning": "使用setup.sh脚本安装该项目。",
+            "command": "./setup.sh"
+        }
+    ]
+}

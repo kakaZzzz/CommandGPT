@@ -21,8 +21,11 @@ from agents.judge import JudgeAgent
 from agents.solution import SolutionAgent
 from agents.next import NextAgent
 from agents.keyword import KeywordAgent
+from agents.summary import SummaryAgent
 
 from tools import Tools
+from library import VectorDB
+from langchain.schema import Document
 
 goal_agent = GoalAgent()
 task_agent = TaskAgent()
@@ -30,16 +33,21 @@ judge_agent = JudgeAgent()
 solution_agent = SolutionAgent()
 next_agent = NextAgent()
 keyword_agent = KeywordAgent()
+summary_agent = SummaryAgent()
 
 tools = Tools()
+db = VectorDB()
 
 SOLUTION_RETRY = 3
+SIMILARY_SCORE = 0.1
 
 os_info = platform.system() + " " + platform.release() + " " + platform.machine()
 
 def run(input_str):
 
     goal_text = ""
+    human_goal = ""
+    goal_experience = False
     
 
     # Step 1: 基于目标和提示，分析完成目标的步骤（文本形式）
@@ -50,15 +58,22 @@ def run(input_str):
 
         f.cyanPrint( "[+]抓取readme..." )
         readme = requests.get(readme)
+        print(readme.text)
 
         f.cyanPrint( "[+]GPT分析安装步骤..." )
-        goal_text = GoalAgent().run({
+        goal_text = GoalAgent(type="few_shot").run({
                 'reference': readme.text,
                 'goal': "安装该项目",
                 'os_info': os_info
             })
 
         print(goal_text)
+
+        # 从文本中总结出目标
+        human_goal = SummaryAgent().run({
+            'content': goal_text
+        })
+        print(human_goal)
 
     else:
         # zero shot
@@ -67,53 +82,50 @@ def run(input_str):
                 'goal': input_str,
                 'os_info': os_info
             }) 
+        
+        human_goal = input_str
         print(goal_text)
 
-    # Step 2: 基于步骤文本，整理成json格式
-    # f.cyanPrint( "[+]转换成json..." )
-    # cmd_json = TaskAgent().run({
-    #     "content": goal_text,
-    #     "os_info": os_info
-    # })
-    # print(cmd_json)
+    search_res = searchExperience("goal: {0}\nos_info: {1}\ntasks:\n{2}".format(input_str, os_info, goal_text))
 
-    f.cyanPrint( "[+]下一步动作..." )
-    cmd_json = TaskAgent().run({
-        "content": goal_text,
-    })
-    print(cmd_json)
+    if search_res == False:
+        # 走全新的流程
+        f.cyanPrint( "[+]下一步动作..." )
+        cmd_json = TaskAgent().run({
+            "content": goal_text,
+        })
+        print(cmd_json)
 
-    # Step 3: json转换成数组，依次执行任务
-    cmd = f.json2value(cmd_json)
+        # Step 3: json转换成数组，依次执行任务
+        cmd = f.json2value(cmd_json)
 
-    for index, item in enumerate(cmd["result"]):
-        f.yellowPrint(str(index), "tool: ", item["tool"], " -> command: ", item["command"])
-        f.purplePrint ("  reasoning: ", item["reasoning"])
-    
-    selection = input("请选择执行的任务序号，多个任务用逗号分隔，如1,2,3: ")
+        for index, item in enumerate(cmd["result"]):
+            f.yellowPrint(str(index), "tool: ", item["tool"], " -> command: ", item["command"])
+            f.purplePrint ("  reasoning: ", item["reasoning"])
+        
+        selection = input("请选择执行的任务序号，多个任务用逗号分隔，如1,2,3: ")
 
-    selection_arr = []
+        selection_arr = []
 
-    for item in selection.split(","):
-        selection_arr.append(cmd["result"][int(item)])
+        for item in selection.split(","):
+            selection_arr.append(cmd["result"][int(item)])
 
-    print(selection_arr)
+        print(selection_arr)
+    else:
+        # 找到成功经验的流程
+        goal_experience = True
+        selection_arr = f.jsonFromFile("library/tasks/" + search_res + ".json")["tasks"]
+        print(selection_arr)
 
     f.cyanPrint("[+]开始执行任务：")
 
     for index, item in enumerate(selection_arr):
         f.cyanPrint("[+]任务", str(index+1), item["tool"])
         
-        if item["tool"] == "shell":
-            res = tools.run("shell", item["command"])
-            print(res)
-        elif item["tool"] == "human":
-            f.yellowPrint("reasoning: ", item["reasoning"])
-            f.yellowPrint("command: ", item["command"])
-            f.bluePrint(">>> 请按照提示进行人工操作，执行完毕后按回车键继续")
+        res = tools.decompose(item)
+
+        if res == "continue":
             continue
-        elif item["tool"] == "python_repl":
-            res = tools.run("python_repl", item["command"])
 
         judge_result = judge_agent.run({
             "command": item["command"],
@@ -141,21 +153,19 @@ def run(input_str):
                 if solution_res:
                     break
         
+    if goal_experience == False:
+
         f.greenPrint("[+]全部任务执行完成，将该经验存入向量数据库")
 
         success_dict = {
-            "goal": input_str,
+            "goal": human_goal,
+            "os_info": os_info,
             "tasks": selection_arr
         }
 
-        json_text = json.dumps(success_dict, ensure_ascii=False)
-        print(json_text)
+        storeDB(success_dict)
 
-        keywords = keyword_agent.run({
-            "content": json_text
-        })
-
-        print(keywords)
+        
 
 
 def solutionTasks(tool_name, error_obj):
@@ -196,16 +206,10 @@ def solutionTasks(tool_name, error_obj):
     for index, item in enumerate(cmd["result"]):
         f.cyanPrint("[+]解决问题任务", str(index+1), item["tool"])
         
-        if item["tool"] == "shell":
-            res = tools.run("shell", item["command"])
-            print(res)
-        elif item["tool"] == "human":
-            f.yellowPrint("reasoning: ", item["reasoning"])
-            f.yellowPrint("command: ", item["command"])
-            f.bluePrint(">>> 请按照提示进行人工操作，执行完毕后按回车键继续")
+        res = tools.decompose(item)
+
+        if res == "continue":
             continue
-        elif item["tool"] == "python_repl":
-            res = tools.run("python_repl", item["command"])
 
         judge_result = judge_agent.run({
             "command": item["command"],
@@ -224,4 +228,45 @@ def solutionTasks(tool_name, error_obj):
     return True
 
 
+def storeDB(success_dict):
+    success_text = ""
+    for key, value in success_dict.items():
+        if key == "tasks":
+            success_text += "tasks: \n"
+            for index, item in enumerate(value):
+                success_text += str(index) + ". tool:" + item["tool"] + "; command:" + item["command"] + "; reasoning:" +item["reasoning"] + ";\n"
+        else:
+            success_text += key + ": " + value + "\n"
     
+    print(success_text)
+
+    json_text = json.dumps(success_dict, ensure_ascii=False)
+    print(json_text)
+
+    keywords = keyword_agent.run({
+        "content": json_text
+    })
+
+    f.greenPrint(keywords)
+
+    # Step 3: 存入数据库
+    db.add(success_text, keywords)
+
+    f.json2File(success_dict, "library/tasks/" + keywords + ".json")
+
+def searchExperience(goal_text):
+    
+    res = db.search(goal_text)
+
+    if len(res) == 0:
+        return False
+    
+    doc, score = res[0]
+    print(doc.page_content)
+    print(doc.metadata["name"])
+    print(score)
+
+    if score < SIMILARY_SCORE:
+        return doc.metadata["name"]
+    else:
+        return False

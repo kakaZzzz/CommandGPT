@@ -58,6 +58,10 @@ res = db.search("帮我安装pytorch")
 
 print(res)
 
-res1 = db.delete()
+res1 = db.get()
 
 print(res1)
+
+res2 = db.delete_collection()
+
+print(res2)

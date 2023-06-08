@@ -1,0 +1,11 @@
+{
+    "goal": "请帮我用pip安装langchain库",
+    "os_info": "Darwin 22.4.0 arm64",
+    "tasks": [
+        {
+            "tool": "shell",
+            "reasoning": "需要使用pip命令安装langchain库，使用shell是最方便的工具",
+            "command": "pip install langchain"
+        }
+    ]
+}

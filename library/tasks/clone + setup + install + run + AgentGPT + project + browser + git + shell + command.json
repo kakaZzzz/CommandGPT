@@ -1,0 +1,21 @@
+{
+    "goal": "该文本描述的是如何克隆、设置、安装和运行一个名为AgentGPT的项目，最终可以在本地浏览器中访问该项目。",
+    "os_info": "Darwin 22.4.0 arm64",
+    "tasks": [
+        {
+            "tool": "shell",
+            "reasoning": "需要使用git命令克隆该项目",
+            "command": "git clone https://github.com/reworkd/AgentGPT.git"
+        },
+        {
+            "tool": "change_dir",
+            "reasoning": "进入项目文件夹，以便进行后续操作",
+            "command": "cd AgentGPT"
+        },
+        {
+            "tool": "shell",
+            "reasoning": "需要运行setup.sh脚本来自动设置CLI",
+            "command": "./setup.sh"
+        }
+    ]
+}

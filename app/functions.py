@@ -65,4 +65,12 @@ def json2value(s):
 def json2File(s, file):
     with open(file, 'w') as f:
         json.dump(s, f, indent=4, ensure_ascii=False)
+
+def jsonFromFile(file):
+    with open(file, 'r') as f:
+        return json.loads(f.read())
     
+def githubFix(s):
+    """github 替换为 kgithub"""
+    new = s.replace('github', 'kgithub')
+    return new
