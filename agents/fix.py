@@ -10,9 +10,9 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
 )
 
-import prompts.solution_message as prompts
+import prompts.fix_message as prompts
 
-class  SolutionAgent:
+class  FixAgent:
     def __init__(self) -> None:
         llm = ChatOpenAI(
             temperature = 0.9
