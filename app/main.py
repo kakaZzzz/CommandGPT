@@ -56,44 +56,6 @@ G = {
 }
 
 
-def run(input_str):
-    
-    # Step 1: 基于目标和提示，分析完成目标的步骤（文本形式）
-    if input_str.startswith("http"):
-        fewShotGoalByUrl(input_str)
-    else:
-        zeroShotGoal(input_str)
-
-    # Step 2: 查询是否有相同的经验可以复用
-    search_res = searchExperience("goal: {0}\nos_info: {1}".format(G["final_goal"], G["os_info"]))
-
-    if search_res == False:
-        # Step 2.1: 没有相同的经验，开始AI分解新任务
-        selection_arr = newTask()
-    else:
-        # Step 2.2: 有相同的经验，直接执行
-        G["finded_experience"] = True
-        selection_arr = f.jsonFromFile("library/tasks/" + search_res + ".json")["tasks"]
-        print(selection_arr)
-
-    # Step 3: 执行任务
-    f.cyanPrint("[+]开始执行任务：")
-    runTask(selection_arr)
-    
-    # Step 4: 任务执行完成，存入向量数据库
-    if G["finded_experience"] == False:
-
-        f.greenPrint("[+]全部任务执行完成，将该经验存入向量数据库")
-
-        success_dict = {
-            "goal": G["final_goal"],
-            "os_info": G["os_info"],
-            "tasks": selection_arr
-        }
-
-        storeDB(success_dict)
-
-
 def runTask(arr, type="goal"):
 
     prefix = ""
@@ -322,6 +284,46 @@ def searchExperience(goal_and_os):
         return False
     
 
+# Command Line
+
+def run(input_str):
+    
+    # Step 1: 基于目标和提示，分析完成目标的步骤（文本形式）
+    if input_str.startswith("http"):
+        fewShotGoalByUrl(input_str)
+    else:
+        zeroShotGoal(input_str)
+
+    # Step 2: 查询是否有相同的经验可以复用
+    search_res = searchExperience("goal: {0}\nos_info: {1}".format(G["final_goal"], G["os_info"]))
+
+    if search_res == False:
+        # Step 2.1: 没有相同的经验，开始AI分解新任务
+        selection_arr = newTask()
+    else:
+        # Step 2.2: 有相同的经验，直接执行
+        G["finded_experience"] = True
+        selection_arr = f.jsonFromFile("library/tasks/" + search_res + ".json")["tasks"]
+        print(selection_arr)
+
+    # Step 3: 执行任务
+    f.cyanPrint("[+]开始执行任务：")
+    runTask(selection_arr)
+    
+    # Step 4: 任务执行完成，存入向量数据库
+    if G["finded_experience"] == False:
+
+        f.greenPrint("[+]全部任务执行完成，将该经验存入向量数据库")
+
+        success_dict = {
+            "goal": G["final_goal"],
+            "os_info": G["os_info"],
+            "tasks": selection_arr
+        }
+
+        storeDB(success_dict)
+
+
 # API
 
 app = FastAPI()
@@ -334,11 +336,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/run/{word}")
+@app.get("/goal/{word}")
 async def root(word):
     if word =="":
         return "请输入目标"
     
-    res = zeroShotGoal(word)
+    if word.startswith("http"):
+        res = fewShotGoalByUrl(word)
+    else:
+        res = zeroShotGoal(word)
+    
     return {"result": res}
 
