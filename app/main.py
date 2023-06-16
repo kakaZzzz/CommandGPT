@@ -1,3 +1,4 @@
+# !/usr/bin/env python3
 # Desc: Main entry point for the application
 # Auth: kaka
 # Date: 2023-6-4
@@ -6,7 +7,13 @@
 # intialize the environment variables
 
 from fastapi import FastAPI
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
+from redis import Redis
+from starlette_session import SessionMiddleware
+from starlette_session.backends import BackendType
+
 
 import json
 import app.functions as f
@@ -53,6 +60,7 @@ G = {
     "task_text": "",
     "finded_experience": False,
     "os_info": platform.system() + " " + platform.release() + " " + platform.machine(),
+    "api":False
 }
 
 
@@ -138,6 +146,7 @@ def fewShotGoalByUrl(url):
         'content': G["task_text"]
     })
     print(G["final_goal"])
+    return G["final_goal"]
 
 
 def zeroShotGoal(goal):
@@ -167,6 +176,9 @@ def newTask():
     for index, item in enumerate(cmd["result"]):
         f.yellowPrint(str(index), "tool: ", item["tool"], " -> command: ", item["command"])
         f.purplePrint ("  reasoning: ", item["reasoning"])
+
+    if G["api"]:
+        return cmd["result"]
     
     selection = input("请选择执行的任务序号，多个任务用逗号分隔，如1,2,3: ")
 
@@ -287,7 +299,7 @@ def searchExperience(goal_and_os):
 # Command Line
 
 def run(input_str):
-    
+
     # Step 1: 基于目标和提示，分析完成目标的步骤（文本形式）
     if input_str.startswith("http"):
         fewShotGoalByUrl(input_str)
@@ -327,6 +339,8 @@ def run(input_str):
 # API
 
 app = FastAPI()
+redis_client = Redis(host="127.0.0.1", port=6379)
+
 origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
@@ -336,15 +350,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/goal/{word}")
-async def root(word):
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="secret",
+    cookie_name="cookie22",
+    backend_type=BackendType.redis,
+    backend_client=redis_client
+)
+
+@app.get("/run/{word}")
+async def root(request: Request, word):
     if word =="":
         return "请输入目标"
     
+    G["api"] = True
+    
+    # Step 1: 基于目标和提示，分析完成目标的步骤（文本形式）
     if word.startswith("http"):
         res = fewShotGoalByUrl(word)
     else:
         res = zeroShotGoal(word)
     
-    return {"result": res}
+    request.session.update(G)
+    
+    return {
+        "result": "success",
+        "task_text": res,
+        }
 
+@app.get("/exp/")
+async def exp(request: Request):
+    G = request.session
+    
+    # Step 2: 查询是否有相同的经验可以复用
+    search_res = searchExperience("goal: {0}\nos_info: {1}".format(G["final_goal"], G["os_info"]))
+
+    if search_res == False:
+        # Step 2.1: 没有相同的经验，开始AI分解新任务
+        selection_arr = newTask()
+
+        return {
+            "result": "human",
+            "selection_arr": selection_arr,
+        }
+
+    else:
+        # Step 2.2: 有相同的经验，直接执行
+        G["finded_experience"] = True
+        selection_arr = f.jsonFromFile("library/tasks/" + search_res + ".json")["tasks"]
+        print(selection_arr)
+
+    G["selection_arr"] = selection_arr
+
+    request.session.update(G)
+
+    return {
+        "result": "success",
+        "selection_arr": selection_arr,
+    }
+
+@app.get("/get/")
+async def get(request: Request):
+    return request.session

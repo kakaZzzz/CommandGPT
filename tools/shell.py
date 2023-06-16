@@ -1,3 +1,11 @@
+# !/usr/bin/env python3
+"""This module is a template
+
+Author:
+Date:
+Last modified:
+Filename:
+"""
 from subprocess import PIPE,Popen
 import app.functions as f
 

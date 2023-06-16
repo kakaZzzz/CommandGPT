@@ -1,4 +1,16 @@
+# !/usr/bin/env python3
+"""This module is a template
+
+Author:
+Date:
+Last modified:
+Filename:
+"""
 def system():
+    """
+
+    @return:
+    """
     return "你是一个专业的程序员"
 
 # def human_zero_shot():
@@ -37,7 +49,12 @@ def human_zero_shot():
 }} 
 """
 
+
 def human_few_shot():
+    """
+
+    @return:
+    """
     return """
 {reference}
 

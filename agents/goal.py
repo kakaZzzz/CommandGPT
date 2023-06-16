@@ -1,3 +1,4 @@
+# !/usr/bin/env python3
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 

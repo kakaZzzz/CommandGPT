@@ -1,3 +1,4 @@
+# !/usr/bin/env python3
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 
@@ -15,6 +16,9 @@ from tools import Tools
 
 class  TaskAgent:
     def __init__(self) -> None:
+        """
+
+        """
         llm = ChatOpenAI(
             temperature = 0.9
         )
@@ -30,6 +34,11 @@ class  TaskAgent:
         self.chain = LLMChain(llm=llm, prompt=chat_prompt, verbose=True)
 
     def run(self, input):
+        """
+
+        @param input:
+        @return:
+        """
         input["tools"] = self.tools.inline_text(self.uesd_tools)
 
         return self.chain.run(input)

@@ -1,3 +1,11 @@
+# !/usr/bin/env python3
+"""This module is a template
+
+Author:
+Date:
+Last modified:
+Filename:
+"""
 import sys
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain

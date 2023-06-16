@@ -1,7 +1,24 @@
+# !/usr/bin/env python3
+"""This module is a template
+
+Author:
+Date:
+Last modified:
+Filename:
+"""
 def system():
+    """
+
+    @return:
+    """
     return "你是一个有用的助手，能帮助我决策下一步该做什么"
 
+
 def human():
+    """
+
+    @return:
+    """
     return """
 任务执行步骤是：
 {steps}
